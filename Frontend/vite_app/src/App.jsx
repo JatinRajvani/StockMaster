@@ -14,7 +14,8 @@ import LocationDetails from "@/pages/LocationDetails";
 import Profile from '@/pages/Profile'
 import Auth from '@/pages/Auth'
 import Sidebar from '@/components/Sidebar'
-
+import NewReceipt from "@/pages/NewReceipt";
+import ReceiptDetails from "@/pages/ReceiptDetails";
 function App() {
   return (
     <BrowserRouter>
@@ -55,6 +56,9 @@ function InnerApp(){
           <Route path="/profile" element={<RequireAuth><Profile /></RequireAuth>} />
           <Route path="/warehouses/:warehouseId" element={<RequireAuth><WarehouseDetails /></RequireAuth>} />
           <Route path="/warehouses/:warehouseId/locations/:locationId" element={<RequireAuth><LocationDetails /></RequireAuth>} />
+          <Route path="/receipts/new" element={<NewReceipt />} />
+          <Route path="/receipts/:id" element={<ReceiptDetails />} />
+
         </Routes>
       </main>
     </div>

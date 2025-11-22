@@ -1,7 +1,7 @@
-import React, { useState } from 'react';
-import { base44 } from '@/api/base44Client';
-// import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { useQuery, useMutation, useQueryClient } from '@/shims/react-query';
+// src/pages/Receipts.jsx
+import React, { useState, useMemo } from "react";
+import { useNavigate } from "react-router-dom";
+import { useQuery, useMutation, useQueryClient } from "@/shims/react-query";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -10,45 +10,90 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-// icons removed from this page
 import { Skeleton } from "@/components/ui/skeleton";
+
+/**
+ * Receipts page — fully integrated with your backend API routes:
+ * - GET  /api/receipts
+ * - POST /api/receipts/create
+ * - POST /api/receipts/:id/validate
+ *
+ * Behavior/Mapping notes:
+ * - Create payload uses: { supplierId, warehouseId, items: [{ productId, orderedQty }] }
+ * - The UI shows product name/sku for convenience but sends only productId & orderedQty.
+ * - Supplier and Warehouse are plain inputs (strings) per your choice.
+ */
 
 export default function Receipts() {
   const queryClient = useQueryClient();
+  const navigate = useNavigate();
+
+  // dialog + form state
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [formData, setFormData] = useState({
-    receipt_number: '',
-    supplier: '',
-    warehouse: '',
-    status: 'draft',
-    receipt_date: new Date().toISOString().split('T')[0],
-    items: [],
-    notes: '',
+    supplier: "", // will be sent as supplierId (string)
+    warehouse: "", // will be sent as warehouseId (string)
+    items: [], // UI items: { productId, orderedQty, product_name, sku }
   });
+
+  // temporary item being added
   const [currentItem, setCurrentItem] = useState({
-    product_id: '',
-    quantity: 0,
+    productId: "",
+    orderedQty: 0,
   });
 
+  // ---- Queries ----
+  // receipts
   const { data: receipts = [], isLoading: loadingReceipts } = useQuery({
-    queryKey: ['receipts'],
-    queryFn: () => base44.entities.Receipt.list('-updated_date'),
+    queryKey: ["receipts"],
+    queryFn: async () => {
+      const res = await fetch("/api/receipts");
+      if (!res.ok) throw new Error("Failed to fetch receipts");
+      const json = await res.json();
+      // controllers return { message, receipts }
+      return Array.isArray(json.receipts) ? json.receipts : [];
+    },
   });
 
-  const { data: products = [] } = useQuery({
-    queryKey: ['products'],
-    queryFn: () => base44.entities.Product.list(),
+  // products (for selecting product while adding items)
+  const { data: products = [], isLoading: loadingProducts } = useQuery({
+    queryKey: ["products"],
+    queryFn: async () => {
+      // assume backend has /api/products; if different, update this URL
+      const res = await fetch("/api/products");
+      if (!res.ok) {
+        // return empty list gracefully if endpoint missing
+        return [];
+      }
+      const json = await res.json();
+      // normalize product id keys (support _id, id, productId)
+      return (json.products || json || []).map((p) => ({
+        ...p,
+        _id: p._id || p.id || p.productId || p._id,
+        id: p._id || p.id || p.productId || p._id,
+        name: p.name || p.product_name || p.productName || "Unnamed",
+        sku: p.sku || p.SKU || "",
+        unit: p.unit || p.unit_of_measure || "",
+      }));
+    },
   });
 
-  const { data: warehouses = [] } = useQuery({
-    queryKey: ['warehouses'],
-    queryFn: () => base44.entities.Warehouse.list(),
-  });
-
+  // ---- Mutations ----
   const createMutation = useMutation({
-    mutationFn: (data) => base44.entities.Receipt.create(data),
+    mutationFn: async (payload) => {
+      const res = await fetch("/api/receipts/create", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+      });
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({ message: "Create failed" }));
+        throw new Error(err.message || "Failed to create receipt");
+      }
+      return res.json();
+    },
     onSuccess: () => {
-      queryClient.invalidateQueries(['receipts']);
+      queryClient.invalidateQueries(["receipts"]);
       setIsDialogOpen(false);
       resetForm();
     },
@@ -56,93 +101,114 @@ export default function Receipts() {
 
   const validateMutation = useMutation({
     mutationFn: async (receipt) => {
-      // Update receipt status
-      await base44.entities.Receipt.update(receipt.id, { status: 'done' });
-      
-      // Update product stocks
-      for (const item of receipt.items) {
-        const product = products.find(p => p.id === item.product_id);
-        if (product) {
-          await base44.entities.Product.update(product.id, {
-            current_stock: (product.current_stock || 0) + item.quantity,
-          });
-          
-          // Log move history
-          await base44.entities.MoveHistory.create({
-            operation_type: 'receipt',
-            reference_number: receipt.receipt_number,
-            product_id: product.id,
-            product_name: product.name,
-            sku: product.sku,
-            quantity: item.quantity,
-            unit: product.unit_of_measure,
-            from_location: 'Supplier',
-            to_location: receipt.warehouse,
-            operation_date: receipt.receipt_date,
-            performed_by: 'Current User',
-          });
-        }
+      // backend expects :id = receiptId (e.g., RC001)
+      const id = receipt.receiptId || receipt.receiptId || receipt.id;
+      const res = await fetch(`/api/receipts/${encodeURIComponent(id)}/validate`, {
+        method: "POST",
+      });
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({ message: "Validate failed" }));
+        throw new Error(err.message || "Failed to validate receipt");
       }
+      return res.json();
     },
     onSuccess: () => {
-      queryClient.invalidateQueries(['receipts']);
-      queryClient.invalidateQueries(['products']);
+      queryClient.invalidateQueries(["receipts"]);
+      // Optionally refresh stock/products if you have endpoints for that
+      queryClient.invalidateQueries(["products"]);
     },
   });
 
-  const handleAddItem = () => {
-    if (!currentItem.product_id || currentItem.quantity <= 0) return;
-    
-    const product = products.find(p => p.id === currentItem.product_id);
-    if (!product) return;
-
+  // ---- Helpers ----
+  const resetForm = () => {
     setFormData({
-      ...formData,
-      items: [
-        ...formData.items,
-        {
-          product_id: product.id,
-          product_name: product.name,
-          sku: product.sku,
-          quantity: currentItem.quantity,
-          unit: product.unit_of_measure,
-        },
-      ],
+      supplier: "",
+      warehouse: "",
+      items: [],
     });
-    setCurrentItem({ product_id: '', quantity: 0 });
+    setCurrentItem({ productId: "", orderedQty: 0 });
+  };
+
+  // Add current item (UI) to formData.items
+  const handleAddItem = () => {
+    if (!currentItem.productId) return;
+    if (!currentItem.orderedQty || Number(currentItem.orderedQty) <= 0) return;
+
+    const productObj = products.find((p) => (p.id || p._id) === currentItem.productId);
+    const itemForUI = {
+      productId: currentItem.productId,
+      orderedQty: Number(currentItem.orderedQty),
+      product_name: productObj?.name || "",
+      sku: productObj?.sku || "",
+      unit: productObj?.unit || "",
+    };
+
+    setFormData((prev) => ({
+      ...prev,
+      items: [...prev.items, itemForUI],
+    }));
+    setCurrentItem({ productId: "", orderedQty: 0 });
   };
 
   const handleRemoveItem = (index) => {
-    setFormData({
-      ...formData,
-      items: formData.items.filter((_, i) => i !== index),
-    });
+    setFormData((prev) => ({
+      ...prev,
+      items: prev.items.filter((_, i) => i !== index),
+    }));
   };
 
-  const handleSubmit = (e) => {
+  // Submit create receipt (map UI fields to backend payload)
+  const handleSubmit = async (e) => {
     e.preventDefault();
-    createMutation.mutate(formData);
+
+    // Validate basic fields
+    if (!formData.supplier || !formData.warehouse) {
+      alert("Supplier and Warehouse are required");
+      return;
+    }
+    if (!Array.isArray(formData.items) || formData.items.length === 0) {
+      alert("Add at least one item");
+      return;
+    }
+
+    const payload = {
+      supplierId: formData.supplier, // free text stored as supplierId per your choice
+      warehouseId: formData.warehouse, // free text stored as warehouseId
+      items: formData.items.map((it) => ({
+        productId: it.productId,
+        orderedQty: Number(it.orderedQty),
+      })),
+    };
+
+    createMutation.mutate(payload);
   };
 
-  const resetForm = () => {
-    setFormData({
-      receipt_number: '',
-      supplier: '',
-      warehouse: '',
-      status: 'draft',
-      receipt_date: new Date().toISOString().split('T')[0],
-      items: [],
-      notes: '',
-    });
-  };
-
+  // human-friendly mapping for status -> badge classes (tailwind-ish)
   const statusColors = {
-    draft: 'bg-slate-100 text-slate-800 border-slate-300',
-    waiting: 'bg-yellow-100 text-yellow-800 border-yellow-300',
-    ready: 'bg-blue-100 text-blue-800 border-blue-300',
-    done: 'bg-green-100 text-green-800 border-green-300',
-    cancelled: 'bg-red-100 text-red-800 border-red-300',
+    Draft: "bg-slate-100 text-slate-800 border-slate-300",
+    Waiting: "bg-yellow-100 text-yellow-800 border-yellow-300",
+    Ready: "bg-blue-100 text-blue-800 border-blue-300",
+    Done: "bg-green-100 text-green-800 border-green-300",
+    Canceled: "bg-red-100 text-red-800 border-red-300",
+    draft: "bg-slate-100 text-slate-800 border-slate-300",
+    waiting: "bg-yellow-100 text-yellow-800 border-yellow-300",
+    ready: "bg-blue-100 text-blue-800 border-blue-300",
+    done: "bg-green-100 text-green-800 border-green-300",
+    canceled: "bg-red-100 text-red-800 border-red-300",
   };
+
+  // normalize receipts for display (some controllers may return different key names)
+  const normalizedReceipts = useMemo(() => {
+    return (receipts || []).map((r) => ({
+      ...r,
+      receiptId: r.receiptId || r.receipt_id || r._id || r.id,
+      supplierId: r.supplierId || r.supplier || "",
+      warehouseId: r.warehouseId || r.warehouse || "",
+      status: r.status || r.status_text || "Draft",
+      items: r.items || [],
+      createdAt: r.createdAt || r.created_at,
+    }));
+  }, [receipts]);
 
   return (
     <div className="p-6 lg:p-8 space-y-6">
@@ -151,12 +217,9 @@ export default function Receipts() {
           <h1 className="text-3xl font-bold text-slate-900">Receipts</h1>
           <p className="text-slate-500 mt-1">Manage incoming stock from suppliers</p>
         </div>
-        <Button 
-          onClick={() => setIsDialogOpen(true)}
-          variant="primary"
-        >
-          New Receipt
-        </Button>
+        <Button onClick={() => navigate("/receipts/new")} variant="primary">
+  New Receipt
+</Button>
       </div>
 
       <Card className="border-slate-200">
@@ -164,7 +227,7 @@ export default function Receipts() {
           <Table>
             <TableHeader>
               <TableRow>
-                <TableHead>Receipt #</TableHead>
+                <TableHead>Receipt Id</TableHead>
                 <TableHead>Supplier</TableHead>
                 <TableHead>Warehouse</TableHead>
                 <TableHead>Date</TableHead>
@@ -175,7 +238,7 @@ export default function Receipts() {
             </TableHeader>
             <TableBody>
               {loadingReceipts ? (
-                Array(5).fill(0).map((_, i) => (
+                Array.from({ length: 5 }).map((_, i) => (
                   <TableRow key={i}>
                     <TableCell><Skeleton className="h-4 w-24" /></TableCell>
                     <TableCell><Skeleton className="h-4 w-32" /></TableCell>
@@ -186,32 +249,34 @@ export default function Receipts() {
                     <TableCell><Skeleton className="h-8 w-24" /></TableCell>
                   </TableRow>
                 ))
-              ) : receipts.length === 0 ? (
+              ) : normalizedReceipts.length === 0 ? (
                 <TableRow>
                   <TableCell colSpan={7} className="text-center py-8 text-slate-500">
                     No receipts found. Create your first receipt to start tracking incoming stock.
                   </TableCell>
                 </TableRow>
               ) : (
-                receipts.map((receipt) => (
-                  <TableRow key={receipt.id} className="hover:bg-slate-50">
-                    <TableCell className="font-mono font-medium">{receipt.receipt_number}</TableCell>
-                    <TableCell>{receipt.supplier}</TableCell>
-                    <TableCell>{receipt.warehouse}</TableCell>
-                    <TableCell>{new Date(receipt.receipt_date).toLocaleDateString()}</TableCell>
-                    <TableCell>{receipt.items?.length || 0} items</TableCell>
+                normalizedReceipts.map((receipt) => (
+                 <TableRow
+  key={receipt.receiptId}
+  className="hover:bg-slate-50 cursor-pointer"
+  onClick={() => navigate(`/receipts/${receipt.receiptId}`)}
+>
+                    <TableCell className="font-mono font-medium">{receipt.receiptId}</TableCell>
+                    <TableCell>{receipt.supplierId}</TableCell>
+                    <TableCell>{receipt.warehouseId}</TableCell>
                     <TableCell>
-                      <Badge variant="outline" className={`${statusColors[receipt.status]} border`}>
-                        {receipt.status}
+                      {receipt.createdAt ? new Date(receipt.createdAt).toLocaleDateString() : ""}
+                    </TableCell>
+                    <TableCell>{(receipt.items || []).length} items</TableCell>
+                    <TableCell>
+                      <Badge variant="outline" className={`${statusColors[receipt.status] || "bg-slate-100 text-slate-800"} border`}>
+                        {String(receipt.status)}
                       </Badge>
                     </TableCell>
                     <TableCell>
-                      {receipt.status !== 'done' && (
-                        <Button
-                          size="sm"
-                          onClick={() => validateMutation.mutate(receipt)}
-                          variant="success"
-                        >
+                      {String(receipt.status).toLowerCase() !== "done" && (
+                        <Button size="sm" onClick={() => validateMutation.mutate(receipt)} variant="success">
                           Validate
                         </Button>
                       )}
@@ -224,56 +289,33 @@ export default function Receipts() {
         </CardContent>
       </Card>
 
+      {/* Create Receipt Dialog */}
       <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
         <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>Create New Receipt</DialogTitle>
           </DialogHeader>
+
           <form onSubmit={handleSubmit} className="space-y-6">
             <div className="grid grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <Label htmlFor="receipt_number">Receipt Number *</Label>
-                <Input
-                  id="receipt_number"
-                  value={formData.receipt_number}
-                  onChange={(e) => setFormData({ ...formData, receipt_number: e.target.value })}
-                  placeholder="REC-001"
-                  required
-                />
-              </div>
               <div className="space-y-2">
                 <Label htmlFor="supplier">Supplier *</Label>
                 <Input
                   id="supplier"
                   value={formData.supplier}
                   onChange={(e) => setFormData({ ...formData, supplier: e.target.value })}
-                  placeholder="Supplier name"
+                  placeholder="Supplier name or ID (free text)"
                   required
                 />
               </div>
-            </div>
 
-            <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
-                <Label htmlFor="warehouse">Warehouse *</Label>
-                <Select value={formData.warehouse} onValueChange={(value) => setFormData({ ...formData, warehouse: value })}>
-                  <SelectTrigger>
-                    <SelectValue placeholder="Select warehouse" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {warehouses.map((w) => (
-                      <SelectItem key={w.id} value={w.name}>{w.name}</SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="receipt_date">Receipt Date *</Label>
+                <Label htmlFor="warehouse">Warehouse (ID) *</Label>
                 <Input
-                  id="receipt_date"
-                  type="date"
-                  value={formData.receipt_date}
-                  onChange={(e) => setFormData({ ...formData, receipt_date: e.target.value })}
+                  id="warehouse"
+                  value={formData.warehouse}
+                  onChange={(e) => setFormData({ ...formData, warehouse: e.target.value })}
+                  placeholder="Warehouse ID (e.g., WH001) or name"
                   required
                 />
               </div>
@@ -281,25 +323,37 @@ export default function Receipts() {
 
             <div className="space-y-4">
               <Label>Items</Label>
-              <div className="flex gap-3">
-                <Select value={currentItem.product_id} onValueChange={(value) => setCurrentItem({ ...currentItem, product_id: value })}>
-                  <SelectTrigger className="flex-1">
-                    <SelectValue placeholder="Select product" />
+              <div className="flex gap-3 items-center">
+                <Select
+                  value={currentItem.productId}
+                  onValueChange={(value) => setCurrentItem((c) => ({ ...c, productId: value }))}
+                  className="flex-1"
+                >
+                  <SelectTrigger className="w-full">
+                    <SelectValue placeholder={loadingProducts ? "Loading products..." : "Select product"} />
                   </SelectTrigger>
                   <SelectContent>
-                    {products.map((p) => (
-                      <SelectItem key={p.id} value={p.id}>{p.name} ({p.sku})</SelectItem>
-                    ))}
+                    {products.length === 0 ? (
+                      <SelectItem value="">No products</SelectItem>
+                    ) : (
+                      products.map((p) => (
+                        <SelectItem key={p.id || p._id} value={p.id || p._id}>
+                          {p.name} {p.sku ? `(${p.sku})` : ""}
+                        </SelectItem>
+                      ))
+                    )}
                   </SelectContent>
                 </Select>
+
                 <Input
                   type="number"
                   min="0"
-                  placeholder="Quantity"
-                  value={currentItem.quantity || ''}
-                  onChange={(e) => setCurrentItem({ ...currentItem, quantity: parseFloat(e.target.value) || 0 })}
+                  placeholder="Ordered Qty"
+                  value={currentItem.orderedQty || ""}
+                  onChange={(e) => setCurrentItem((c) => ({ ...c, orderedQty: parseFloat(e.target.value) || 0 }))}
                   className="w-32"
                 />
+
                 <Button type="button" onClick={handleAddItem} variant="outline">
                   Add
                 </Button>
@@ -312,23 +366,18 @@ export default function Receipts() {
                       <TableRow>
                         <TableHead>Product</TableHead>
                         <TableHead>SKU</TableHead>
-                        <TableHead>Quantity</TableHead>
+                        <TableHead>Qty</TableHead>
                         <TableHead></TableHead>
                       </TableRow>
                     </TableHeader>
                     <TableBody>
-                      {formData.items.map((item, index) => (
-                        <TableRow key={index}>
-                          <TableCell>{item.product_name}</TableCell>
-                          <TableCell className="font-mono text-sm">{item.sku}</TableCell>
-                          <TableCell>{item.quantity} {item.unit}</TableCell>
+                      {formData.items.map((it, idx) => (
+                        <TableRow key={idx}>
+                          <TableCell>{it.product_name || it.productId}</TableCell>
+                          <TableCell className="font-mono text-sm">{it.sku || "-"}</TableCell>
+                          <TableCell>{it.orderedQty} {it.unit || ""}</TableCell>
                           <TableCell>
-                            <Button
-                              type="button"
-                              variant="outline"
-                              size="sm"
-                              onClick={() => handleRemoveItem(index)}
-                            >
+                            <Button type="button" variant="outline" size="sm" onClick={() => handleRemoveItem(idx)}>
                               Remove
                             </Button>
                           </TableCell>
@@ -341,11 +390,11 @@ export default function Receipts() {
             </div>
 
             <div className="flex justify-end gap-3">
-              <Button type="button" variant="outline" onClick={() => setIsDialogOpen(false)}>
+              <Button type="button" variant="outline" onClick={() => { setIsDialogOpen(false); resetForm(); }}>
                 Cancel
               </Button>
-              <Button type="submit" variant="primary">
-                Create Receipt
+              <Button type="submit" variant="primary" disabled={createMutation.isLoading}>
+                {createMutation.isLoading ? "Creating..." : "Create Receipt"}
               </Button>
             </div>
           </form>
