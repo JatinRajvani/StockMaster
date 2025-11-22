@@ -1,33 +1,478 @@
-.sm-sidebar{
-  width: 260px;
-  min-width:260px;
-  background: linear-gradient(180deg,#071233,#0b233b);
-  color: #fff;
-  display:flex;
-  flex-direction:column;
-  justify-content:space-between;
-  padding:20px 16px;
-  height:100vh;
-  box-sizing:border-box;
-}
-.sm-logo{display:flex;align-items:center;gap:12px;margin-bottom:18px}
-.sm-logo-icon{width:44px;height:44px;border-radius:10px;background:linear-gradient(135deg,#ffb347,#ff6a00);display:flex;align-items:center;justify-content:center;font-weight:700}
-.sm-logo-text .sm-brand{font-weight:700;font-size:16px}
-.sm-logo-text .sm-sub{font-size:12px;color:#d1d5db}
-.sm-nav{display:flex;flex-direction:column;gap:6px;margin-top:8px}
-.sm-nav-item{display:flex;align-items:center;gap:12px;padding:12px;border-radius:10px;color:rgba(255,255,255,0.9);text-decoration:none}
-.sm-nav-item .sm-nav-icon{width:20px;height:20px;display:inline-flex;align-items:center;justify-content:center;opacity:0.9}
-.sm-nav-item .sm-nav-label{font-size:15px}
-.sm-nav-item:hover{background:rgba(255,255,255,0.03)}
-.sm-nav-item.active{background:linear-gradient(90deg,#ff8a00,#ff5e3a);box-shadow:0 6px 18px rgba(0,0,0,0.25)}
-.sm-nav-item.active .sm-nav-label{color:#fff;font-weight:700}
-.sm-sidebar-bottom{padding-top:10px}
-.sm-profile{display:flex;align-items:center;gap:12px;padding:12px;border-radius:10px;background:rgba(255,255,255,0.02)}
-.sm-avatar{width:40px;height:40px;border-radius:999px;background:#ff8a00;display:flex;align-items:center;justify-content:center;color:#fff;font-weight:700}
-.sm-user .sm-name{font-weight:600}
-.sm-user .sm-email{font-size:12px;color:#cbd5e1}
+/* ============================================
+   PROFESSIONAL ORANGE THEME SIDEBAR
+   ============================================ */
 
-/* Responsive: collapse sidebar on very small width */
-@media(max-width:720px){
-  .sm-sidebar{position:fixed;left:0;top:0;z-index:40;height:100vh}
+/* Main Sidebar Container */
+.sm-sidebar {
+  width: 280px;
+  min-width: 280px;
+  background: linear-gradient(180deg, #0f172a 0%, #1e293b 50%, #0f172a 100%);
+  color: #fff;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  padding: 24px 16px;
+  height: 100vh;
+  box-sizing: border-box;
+  position: relative;
+  overflow: hidden;
+  box-shadow: 4px 0 24px rgba(0, 0, 0, 0.3);
+}
+
+/* Animated Background Pattern */
+.sm-sidebar-bg {
+  position: absolute;
+  inset: 0;
+  background: 
+    radial-gradient(circle at 20% 50%, rgba(251, 146, 60, 0.15) 0%, transparent 50%),
+    radial-gradient(circle at 80% 80%, rgba(249, 115, 22, 0.15) 0%, transparent 50%);
+  background-size: 200% 200%;
+  pointer-events: none;
+  animation: gradientShift 15s ease infinite;
+  opacity: 0.8;
+}
+
+/* Content Wrapper */
+.sm-sidebar-content {
+  position: relative;
+  z-index: 1;
+  animation: slideInLeft 0.5s ease-out;
+  display: flex;
+  flex-direction: column;
+  gap: 32px;
+}
+
+/* ============================================
+   LOGO SECTION
+   ============================================ */
+
+.sm-logo-wrapper {
+  animation: scaleIn 0.6s cubic-bezier(0.68, -0.55, 0.265, 1.55);
+}
+
+.sm-logo {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 12px;
+  border-radius: 16px;
+  background: rgba(255, 255, 255, 0.05);
+  backdrop-filter: blur(10px);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  cursor: pointer;
+}
+
+.sm-logo:hover {
+  background: rgba(255, 255, 255, 0.08);
+  transform: translateY(-2px);
+  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.3);
+}
+
+.sm-logo-icon-wrapper {
+  position: relative;
+}
+
+/* Glow Effect */
+.sm-logo-glow {
+  position: absolute;
+  inset: -4px;
+  background: linear-gradient(135deg, #fb923c 0%, #f97316 100%);
+  border-radius: 14px;
+  opacity: 0.3;
+  filter: blur(8px);
+  z-index: 0;
+}
+
+/* Icon Container */
+.sm-logo-icon {
+  position: relative;
+  width: 48px;
+  height: 48px;
+  border-radius: 12px;
+  background: linear-gradient(135deg, #fb923c 0%, #f97316 100%);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 24px;
+  font-weight: 700;
+  box-shadow: 0 6px 20px rgba(251, 146, 60, 0.4);
+  animation: bounce 2s infinite;
+  overflow: hidden;
+  z-index: 1;
+}
+
+/* Shine Effect on Logo */
+.sm-logo-shine {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(45deg, transparent, rgba(255, 255, 255, 0.3), transparent);
+  animation: shine 3s infinite;
+}
+
+.sm-logo-text {
+  flex: 1;
+}
+
+.sm-brand {
+  font-weight: 800;
+  font-size: 18px;
+  letter-spacing: -0.5px;
+  background: linear-gradient(135deg, #fff 0%, #e0e7ff 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+.sm-sub {
+  font-size: 12px;
+  color: #94a3b8;
+  font-weight: 500;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+  margin-top: 2px;
+}
+
+/* ============================================
+   NAVIGATION
+   ============================================ */
+
+.sm-nav {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  animation: fadeIn 0.8s ease-out;
+}
+
+.sm-nav-item {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 14px 16px;
+  border-radius: 14px;
+  color: rgba(255, 255, 255, 0.8);
+  text-decoration: none;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  overflow: hidden;
+  border: 1px solid transparent;
+  animation: slideInLeft 0.5s ease-out both;
+}
+
+/* Active State Indicator */
+.sm-nav-indicator {
+  position: absolute;
+  left: 0;
+  top: 0;
+  height: 100%;
+  width: 4px;
+  background: linear-gradient(180deg, #fb923c 0%, #f97316 100%);
+  transform: scaleY(0);
+  transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.sm-nav-item:hover {
+  background: rgba(255, 255, 255, 0.05);
+  color: #fff;
+  transform: translateX(4px);
+  border-color: rgba(255, 255, 255, 0.1);
+}
+
+.sm-nav-item:hover .sm-nav-indicator {
+  transform: scaleY(1);
+}
+
+.sm-nav-item:hover .sm-nav-icon {
+  transform: scale(1.2) rotate(5deg);
+}
+
+/* Active State */
+.sm-nav-item.active {
+  background: linear-gradient(135deg, #fb923c 0%, #f97316 100%);
+  color: #fff;
+  box-shadow: 0 8px 20px rgba(251, 146, 60, 0.4);
+  border-color: rgba(255, 255, 255, 0.2);
+}
+
+.sm-nav-item.active .sm-nav-indicator {
+  transform: scaleY(1);
+  width: 100%;
+  background: rgba(255, 255, 255, 0.1);
+}
+
+.sm-nav-item.active .sm-nav-label {
+  font-weight: 700;
+}
+
+.sm-nav-item.active .sm-nav-icon {
+  transform: scale(1.15);
+  filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.2));
+}
+
+/* Nav Icon */
+.sm-nav-icon {
+  width: 22px;
+  height: 22px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.3s cubic-bezier(0.68, -0.55, 0.265, 1.55);
+  z-index: 1;
+}
+
+/* Nav Label */
+.sm-nav-label {
+  font-size: 15px;
+  font-weight: 500;
+  letter-spacing: 0.3px;
+  z-index: 1;
+}
+
+/* Hover Background Effect */
+.sm-nav-hover-bg {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(90deg, rgba(251, 146, 60, 0.1) 0%, transparent 100%);
+  opacity: 0;
+  transition: opacity 0.3s ease;
+}
+
+.sm-nav-item:hover .sm-nav-hover-bg {
+  opacity: 1;
+}
+
+/* ============================================
+   PROFILE SECTION
+   ============================================ */
+
+.sm-sidebar-bottom {
+  position: relative;
+  z-index: 1;
+  padding-top: 24px;
+  border-top: 1px solid rgba(255, 255, 255, 0.1);
+  animation: fadeIn 1s ease-out;
+}
+
+.sm-profile {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 14px;
+  border-radius: 14px;
+  background: rgba(255, 255, 255, 0.05);
+  backdrop-filter: blur(10px);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  cursor: pointer;
+  position: relative;
+}
+
+.sm-profile:hover {
+  background: rgba(255, 255, 255, 0.08);
+  transform: translateY(-2px);
+  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.3);
+}
+
+/* Avatar */
+.sm-avatar-wrapper {
+  position: relative;
+}
+
+.sm-avatar {
+  width: 44px;
+  height: 44px;
+  border-radius: 12px;
+  background: linear-gradient(135deg, #fb923c 0%, #f97316 100%);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #fff;
+  font-weight: 700;
+  font-size: 16px;
+  box-shadow: 0 4px 12px rgba(251, 146, 60, 0.4);
+  position: relative;
+  overflow: hidden;
+}
+
+/* Avatar Shine Effect */
+.sm-avatar-shine {
+  position: absolute;
+  top: -50%;
+  left: -50%;
+  width: 200%;
+  height: 200%;
+  background: linear-gradient(45deg, transparent, rgba(255, 255, 255, 0.3), transparent);
+  transform: rotate(45deg);
+  animation: shine 3s infinite;
+}
+
+.sm-avatar-text {
+  position: relative;
+  z-index: 10;
+}
+
+/* User Info */
+.sm-user {
+  flex: 1;
+  min-width: 0;
+}
+
+.sm-name {
+  font-weight: 600;
+  font-size: 14px;
+  color: #fff;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.sm-email {
+  font-size: 12px;
+  color: #94a3b8;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  margin-top: 2px;
+}
+
+/* Status Indicator */
+.sm-status-indicator {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: #fb923c;
+  box-shadow: 0 0 8px rgba(251, 146, 60, 0.6);
+  opacity: 0;
+  transition: opacity 0.3s ease;
+  animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+}
+
+.sm-profile:hover .sm-status-indicator {
+  opacity: 1;
+}
+
+/* ============================================
+   ANIMATIONS
+   ============================================ */
+
+@keyframes slideInLeft {
+  from {
+    opacity: 0;
+    transform: translateX(-30px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+@keyframes scaleIn {
+  from {
+    opacity: 0;
+    transform: scale(0.95);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes bounce {
+  0%, 100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-8px);
+  }
+}
+
+@keyframes shine {
+  0% {
+    transform: translateX(-100%) translateY(-100%) rotate(45deg);
+  }
+  100% {
+    transform: translateX(100%) translateY(100%) rotate(45deg);
+  }
+}
+
+@keyframes gradientShift {
+  0%, 100% {
+    background-position: 0% 50%;
+  }
+  50% {
+    background-position: 100% 50%;
+  }
+}
+
+@keyframes pulse {
+  0%, 100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+  50% {
+    opacity: 0.5;
+    transform: scale(0.95);
+  }
+}
+
+/* ============================================
+   RESPONSIVE DESIGN
+   ============================================ */
+
+@media (max-width: 1024px) {
+  .sm-sidebar {
+    width: 260px;
+    min-width: 260px;
+  }
+}
+
+@media (max-width: 768px) {
+  .sm-sidebar {
+    position: fixed;
+    left: -280px;
+    top: 0;
+    z-index: 1000;
+    height: 100vh;
+    transition: left 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  }
+  
+  .sm-sidebar.open {
+    left: 0;
+  }
+  
+  /* Mobile Overlay */
+  .sm-sidebar-overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.5);
+    backdrop-filter: blur(4px);
+    z-index: 999;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.3s ease;
+  }
+  
+  .sm-sidebar-overlay.active {
+    opacity: 1;
+    pointer-events: all;
+  }
+}
+
+/* ============================================
+   PRINT STYLES
+   ============================================ */
+
+@media print {
+  .sm-sidebar {
+    display: none;
+  }
 }

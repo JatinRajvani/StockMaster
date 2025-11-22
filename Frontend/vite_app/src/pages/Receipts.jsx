@@ -10,7 +10,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { Plus, PackageOpen, Trash2, CheckCircle } from '@/components/icons';
+// icons removed from this page
 import { Skeleton } from "@/components/ui/skeleton";
 
 export default function Receipts() {
@@ -155,7 +155,6 @@ export default function Receipts() {
           onClick={() => setIsDialogOpen(true)}
           className="bg-gradient-to-r from-amber-500 to-orange-600 hover:from-amber-600 hover:to-orange-700"
         >
-          <Plus className="w-4 h-4 mr-2" />
           New Receipt
         </Button>
       </div>
@@ -213,7 +212,6 @@ export default function Receipts() {
                           onClick={() => validateMutation.mutate(receipt)}
                           className="bg-green-600 hover:bg-green-700"
                         >
-                          <CheckCircle className="w-4 h-4 mr-1" />
                           Validate
                         </Button>
                       )}
@@ -303,7 +301,7 @@ export default function Receipts() {
                   className="w-32"
                 />
                 <Button type="button" onClick={handleAddItem} variant="outline">
-                  <Plus className="w-4 h-4" />
+                  Add
                 </Button>
               </div>
 
@@ -331,7 +329,7 @@ export default function Receipts() {
                               size="sm"
                               onClick={() => handleRemoveItem(index)}
                             >
-                              <Trash2 className="w-4 h-4 text-red-500" />
+                              Remove
                             </Button>
                           </TableCell>
                         </TableRow>

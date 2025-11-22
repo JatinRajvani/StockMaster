@@ -7,7 +7,7 @@ import { Input } from "@/components/ui/input";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Search, PackageOpen, TruckIcon, ArrowRightLeft, ClipboardList } from '@/components/icons';
+// icons removed from this page
 import { Skeleton } from "@/components/ui/skeleton";
 
 export default function MoveHistory() {
@@ -35,12 +35,7 @@ export default function MoveHistory() {
     adjustment: 'bg-orange-100 text-orange-800 border-orange-300',
   };
 
-  const typeIcons = {
-    receipt: PackageOpen,
-    delivery: TruckIcon,
-    transfer: ArrowRightLeft,
-    adjustment: ClipboardList,
-  };
+  // icons removed from badges
 
   return (
     <div className="p-6 lg:p-8 space-y-6">
@@ -53,7 +48,7 @@ export default function MoveHistory() {
         <CardHeader>
           <div className="flex flex-col sm:flex-row gap-4">
             <div className="relative flex-1">
-              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-slate-400 w-4 h-4" />
+              {/* decorative icon removed */}
               <Input
                 placeholder="Search by product, SKU, or reference..."
                 value={searchTerm}
@@ -112,15 +107,13 @@ export default function MoveHistory() {
                   </TableRow>
                 ) : (
                   filteredHistory.map((item) => {
-                    const Icon = typeIcons[item.operation_type];
                     return (
                       <TableRow key={item.id} className="hover:bg-slate-50">
                         <TableCell className="text-slate-600">
                           {item.operation_date ? new Date(item.operation_date).toLocaleDateString() : '-'}
                         </TableCell>
                         <TableCell>
-                          <Badge variant="outline" className={`${typeColors[item.operation_type]} border flex items-center gap-1 w-fit`}>
-                            <Icon className="w-3 h-3" />
+                          <Badge variant="outline" className={`${typeColors[item.operation_type]} border w-fit`}>
                             {item.operation_type}
                           </Badge>
                         </TableCell>
