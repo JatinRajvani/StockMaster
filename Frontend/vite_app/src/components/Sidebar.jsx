@@ -9,13 +9,14 @@ import {
   ClipboardList,
   Package as PackageIcon,
   Warehouse,
+  TrendingUp,
 } from '@/components/icons'
 
 export default function Sidebar(){
   const items = [
-    { to: '/dashboard', label: 'Dashboard', icon: PackageIcon },
+    { to: '/dashboard', label: 'Dashboard', icon: TrendingUp },
     { to: '/products', label: 'Products', icon: PackageOpen },
-    { to: '/receipts', label: 'Receipts', icon: PackageOpen },
+    { to: '/receipts', label: 'Receipts', icon: ClipboardList },
     { to: '/deliveries', label: 'Deliveries', icon: TruckIcon },
     { to: '/transfers', label: 'Transfers', icon: ArrowRightLeft },
     { to: '/adjustments', label: 'Adjustments', icon: ClipboardList },
