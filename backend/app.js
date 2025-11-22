@@ -4,6 +4,7 @@ import authRoutes from "./routes/authRoutes.js";
 import warehouseRoutes from "./routes/warehouseRoutes.js";
 import locationRoutes from "./routes/locationRoutes.js";
 import categoryRoutes from "./routes/categoryRoutes.js";
+import productRoutes from "./routes/productRoutes.js";
 const app = express();
 
 app.use(cors());
@@ -13,5 +14,5 @@ app.use("/api/auth", authRoutes);
 app.use("/api/warehouses", warehouseRoutes);
 app.use("/api/locations", locationRoutes);
 app.use("/api/categories", categoryRoutes);
-
+app.use("/api/products", productRoutes);
 export default app;
