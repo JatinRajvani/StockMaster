@@ -53,7 +53,7 @@ export const getAllLocations = async (req, res) => {
 // GET SINGLE LOCATION
 export const getLocationById = async (req, res) => {
   try {
-    const { id } = req.params;
+    const { id } = req.params; // id is locationId (e.g. LC001)
 
     const location = await LocationModel.findById(id);
 
@@ -70,3 +70,24 @@ export const getLocationById = async (req, res) => {
     res.status(500).json({ message: "Server error" });
   }
 };
+
+// DELETE LOCATION (by locationId)
+export const deleteLocation = async (req, res) => {
+  try {
+    const { id } = req.params; // id is locationId
+
+    const result = await LocationModel.deleteLocation(id);
+
+    // result.deletedCount (0 or 1) when using deleteOne
+    if (!result || result.deletedCount === 0) {
+      return res.status(404).json({ message: "Location not found" });
+    }
+
+    res.json({ message: "Location deleted successfully" });
+  } catch (error) {
+    console.log("Error:", error);
+    res.status(500).json({ message: "Server error" });
+  }
+};
+
+

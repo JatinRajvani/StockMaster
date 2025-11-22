@@ -1,6 +1,6 @@
 import React, { useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
-import { useQuery } from "@/shims/react-query";
+import { useQuery, useQueryClient } from "@/shims/react-query";
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -15,6 +15,7 @@ import { Select, SelectTrigger, SelectContent, SelectItem, SelectValue } from "@
 export default function WarehouseDetails() {
   const { warehouseId } = useParams();
   const navigate = useNavigate();
+  const queryClient = useQueryClient();
 
   const [locationForm, setLocationForm] = useState({
     name: "",
@@ -25,25 +26,22 @@ export default function WarehouseDetails() {
   const { data: warehouse, isLoading: wLoading } = useQuery({
     queryKey: ["warehouse", warehouseId],
     queryFn: async () => {
-      const res = await fetch(
-        `http://localhost:5000/api/warehouses/${warehouseId}`
-      );
+      const res = await fetch(`http://localhost:5000/api/warehouses/${warehouseId}`);
       const json = await res.json();
-      if (!res.ok) throw new Error("Failed");
-      const w = json.warehouse;
-
+      if (!res.ok) throw new Error("Failed to fetch warehouse");
       return {
-        warehouseId: w.warehouseId,
-        name: w.name,
-        code: w.warehouseId,
-        location: w.address,
-        type: w.type,
-        is_active: w.is_active ?? true
+        warehouseId: json.warehouse.warehouseId,
+        name: json.warehouse.name,
+        code: json.warehouse.warehouseId,
+        location: json.warehouse.address,
+        type: json.warehouse.type,
+        is_active: json.warehouse.is_active ?? true
       };
-    }
+    },
+    enabled: !!warehouseId,
   });
 
-  // Fetch ALL locations and filter by warehouseId
+  // Fetch ALL locations
   const { data: allLocations = [], isLoading: locLoading } = useQuery({
     queryKey: ["locations"],
     queryFn: async () => {
@@ -53,38 +51,58 @@ export default function WarehouseDetails() {
     }
   });
 
+  // Filter warehouse-specific locations
   const warehouseLocations = allLocations.filter(
     (loc) => loc.warehouseId === warehouseId
   );
 
-  // Handle Create Location
+  // Handle creating a new location
   async function handleCreateLocation(e) {
     e.preventDefault();
 
-    await fetch("http://localhost:5000/api/locations/create", {
+    const res = await fetch("http://localhost:5000/api/locations/create", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
         warehouseId,
         name: locationForm.name,
-        type: locationForm.type
-      })
+        type: locationForm.type,
+      }),
     });
 
-    setLocationForm({
-      name: "",
-      type: "rack"
+    if (!res.ok) {
+      alert("Failed to create location");
+      return;
+    }
+
+    setLocationForm({ name: "", type: "rack" });
+
+    // Refresh the locations list
+    queryClient.invalidateQueries(["locations"]);
+  }
+
+  // Handle DELETE location
+  async function handleDeleteLocation(locationId) {
+    if (!confirm(`Delete location ${locationId}?`)) return;
+
+    const res = await fetch(`http://localhost:5000/api/locations/${locationId}`, {
+      method: "DELETE"
     });
 
-    // Refresh locations
-    window.location.reload();
+    if (!res.ok) {
+      const json = await res.json().catch(() => ({}));
+      alert(json.message || "Failed to delete location");
+      return;
+    }
+
+    // Refresh list
+    queryClient.invalidateQueries(["locations"]);
   }
 
   if (wLoading) return <div className="p-6">Loading...</div>;
 
   return (
     <div className="p-6 space-y-6">
-
       {/* HEADER */}
       <div className="flex items-center justify-between">
         <h1 className="text-2xl font-bold">
@@ -95,7 +113,7 @@ export default function WarehouseDetails() {
         </Button>
       </div>
 
-      {/* DETAILS CARD */}
+      {/* WAREHOUSE DETAILS */}
       <Card>
         <CardHeader>
           <CardTitle>Warehouse Details</CardTitle>
@@ -104,7 +122,10 @@ export default function WarehouseDetails() {
           <p><strong>Code:</strong> {warehouse.code}</p>
           <p><strong>Location:</strong> {warehouse.location}</p>
           <p><strong>Type:</strong> {warehouse.type.replace(/_/g, " ")}</p>
-          <p><strong>Status:</strong> {warehouse.is_active ? "Active" : "Inactive"}</p>
+          <p>
+            <strong>Status:</strong>{" "}
+            {warehouse.is_active ? "Active" : "Inactive"}
+          </p>
         </CardContent>
       </Card>
 
@@ -119,10 +140,35 @@ export default function WarehouseDetails() {
           ) : warehouseLocations.length === 0 ? (
             <p className="text-slate-500">No locations yet.</p>
           ) : (
-            <ul className="list-disc pl-6">
+            <ul className="space-y-3">
               {warehouseLocations.map((loc) => (
-                <li key={loc.locationId}>
-                  <strong>{loc.locationId}</strong> — {loc.name} ({loc.type})
+                <li
+                  key={loc.locationId}
+                  className="flex items-center justify-between bg-slate-50 p-3 rounded-lg"
+                >
+                  <div>
+                    <strong>{loc.locationId}</strong> — {loc.name} ({loc.type})
+                  </div>
+
+                  <div className="flex gap-2">
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      onClick={() =>
+                        navigate(`/warehouses/${warehouseId}/locations/${loc.locationId}`)
+                      }
+                    >
+                      View
+                    </Button>
+
+                    <Button
+                      size="sm"
+                      variant="destructive"
+                      onClick={() => handleDeleteLocation(loc.locationId)}
+                    >
+                      Delete
+                    </Button>
+                  </div>
                 </li>
               ))}
             </ul>
@@ -130,7 +176,7 @@ export default function WarehouseDetails() {
         </CardContent>
       </Card>
 
-      {/* ADD NEW LOCATION */}
+      {/* ADD LOCATION */}
       <Card>
         <CardHeader>
           <CardTitle>Add New Location</CardTitle>

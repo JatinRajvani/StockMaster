@@ -1,5 +1,4 @@
 import { getDB } from "../config/db.js";
-import { ObjectId } from "mongodb";
 
 export const LocationModel = {
   async createLocation(data) {
@@ -15,17 +14,17 @@ export const LocationModel = {
 
   async findById(id) {
     const db = getDB();
-    return db.collection("locations").findOne({ 
-locationId: id });
+    return db.collection("locations").findOne({ locationId: id });
   },
 
   async findByWarehouse(warehouseId) {
     const db = getDB();
-    return db
-      .collection("locations")
-      .find({ warehouseId: warehouseId })
-      .toArray();
-  }
+    return db.collection("locations").find({ warehouseId }).toArray();
+  },
+
+  async deleteLocation(id) {
+    const db = getDB();
+    // returns result object from deleteOne
+    return db.collection("locations").deleteOne({ locationId: id });
+  },
 };
-
-

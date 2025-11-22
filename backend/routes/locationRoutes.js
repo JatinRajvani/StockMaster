@@ -3,6 +3,7 @@ import {
   createLocation,
   getAllLocations,
   getLocationById,
+  deleteLocation,
 } from "../controllers/locationController.js";
 
 const router = express.Router();
@@ -13,10 +14,10 @@ router.post("/create", createLocation);
 // GET ALL
 router.get("/all", getAllLocations);
 
-// GET SINGLE
+// GET SINGLE (by locationId)
 router.get("/:id", getLocationById);
 
-// router.delete("/:id", deleteLocation);
-
+// DELETE (by locationId)
+router.delete("/:id", deleteLocation);
 
 export default router;
