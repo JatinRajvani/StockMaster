@@ -1,0 +1,16 @@
+/* Minimal UI styles used by the stubbed components */
+:root{
+  --ui-border: #e6e7eb;
+  --ui-bg: #ffffff;
+  --ui-muted: #6b7280;
+}
+.ui-card{background:var(--ui-bg);border:1px solid var(--ui-border);border-radius:8px;padding:12px}
+.ui-card-header{padding-bottom:8px}
+.ui-card-title{font-weight:600}
+.ui-card-content{padding-top:4px}
+.ui-input{padding:8px 10px;border:1px solid var(--ui-border);border-radius:6px;width:100%}
+.ui-table{width:100%;border-collapse:collapse}
+.ui-table th,.ui-table td{padding:8px;text-align:left;border-bottom:1px solid var(--ui-border)}
+.ui-badge{display:inline-flex;align-items:center;padding:4px 8px;border-radius:999px;font-size:12px;border:1px solid var(--ui-border)}
+.ui-skeleton{background:#e9ecef;border-radius:4px}
+.ui-select{padding:6px;border-radius:6px;border:1px solid var(--ui-border)}
