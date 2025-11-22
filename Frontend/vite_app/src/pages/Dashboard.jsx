@@ -1,9 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { base44 } from '@/api/base44Client';
-// import { useQuery } from '@tanstack/react-query';
 import { useQuery } from '@/shims/react-query';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Package, AlertTriangle, PackageOpen, TruckIcon, ArrowRightLeft, TrendingUp, TrendingDown } from '@/components/icons';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
@@ -64,25 +62,17 @@ export default function Dashboard() {
     cancelled: 'bg-red-100 text-red-800 border-red-300',
   };
 
-  const typeIcons = {
-    receipt: PackageOpen,
-    delivery: TruckIcon,
-    transfer: ArrowRightLeft,
-  };
-
   const KPICard = ({ title, value, icon: Icon, trend, trendValue, color }) => (
     <Card className="overflow-hidden border-slate-200 hover:shadow-lg transition-shadow">
       <CardHeader className="flex flex-row items-center justify-between pb-2">
         <CardTitle className="text-sm font-medium text-slate-600">{title}</CardTitle>
         <div className={`p-3 rounded-xl ${color} bg-opacity-10`}>
-          <Icon className={`h-5 w-5 ${color.replace('bg-', 'text-')}`} />
         </div>
       </CardHeader>
       <CardContent>
         <div className="text-3xl font-bold text-slate-900">{value}</div>
         {trend && (
           <div className={`flex items-center text-sm mt-2 ${trend === 'up' ? 'text-green-600' : 'text-red-600'}`}>
-            {trend === 'up' ? <TrendingUp className="w-4 h-4 mr-1" /> : <TrendingDown className="w-4 h-4 mr-1" />}
             <span>{trendValue}</span>
           </div>
         )}
@@ -103,13 +93,11 @@ export default function Dashboard() {
         <KPICard
           title="Total Products"
           value={totalProducts}
-          icon={Package}
           color="bg-blue-500"
         />
         <KPICard
           title="Low Stock Items"
           value={lowStockItems}
-          icon={AlertTriangle}
           color="bg-yellow-500"
           trend="up"
           trendValue="+2 this week"
@@ -117,25 +105,21 @@ export default function Dashboard() {
         <KPICard
           title="Out of Stock"
           value={outOfStockItems}
-          icon={AlertTriangle}
           color="bg-red-500"
         />
         <KPICard
           title="Pending Receipts"
           value={pendingReceipts}
-          icon={PackageOpen}
           color="bg-green-500"
         />
         <KPICard
           title="Pending Deliveries"
           value={pendingDeliveries}
-          icon={TruckIcon}
           color="bg-purple-500"
         />
         <KPICard
           title="Scheduled Transfers"
           value={scheduledTransfers}
-          icon={ArrowRightLeft}
           color="bg-orange-500"
         />
       </div>
@@ -150,27 +134,27 @@ export default function Dashboard() {
             </div>
             <div className="flex gap-3">
               <Select value={filterType} onValueChange={setFilterType}>
-                <SelectTrigger className="w-40">
+                <SelectTrigger className="w-40 group relative overflow-hidden border-2 border-slate-200 hover:border-slate-400 transition-all duration-300 rounded-lg hover:shadow-md">
                   <SelectValue placeholder="Type" />
                 </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">All Types</SelectItem>
-                  <SelectItem value="receipt">Receipts</SelectItem>
-                  <SelectItem value="delivery">Deliveries</SelectItem>
-                  <SelectItem value="transfer">Transfers</SelectItem>
+                <SelectContent className="rounded-lg border-2 border-slate-200 shadow-xl">
+                  <SelectItem value="all" className="cursor-pointer hover:bg-slate-50 rounded-md transition-colors">All Types</SelectItem>
+                  <SelectItem value="receipt" className="cursor-pointer hover:bg-slate-50 rounded-md transition-colors">Receipts</SelectItem>
+                  <SelectItem value="delivery" className="cursor-pointer hover:bg-slate-50 rounded-md transition-colors">Deliveries</SelectItem>
+                  <SelectItem value="transfer" className="cursor-pointer hover:bg-slate-50 rounded-md transition-colors">Transfers</SelectItem>
                 </SelectContent>
               </Select>
               <Select value={filterStatus} onValueChange={setFilterStatus}>
-                <SelectTrigger className="w-40">
+                <SelectTrigger className="w-40 group relative overflow-hidden border-2 border-slate-200 hover:border-slate-400 transition-all duration-300 rounded-lg hover:shadow-md">
                   <SelectValue placeholder="Status" />
                 </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">All Status</SelectItem>
-                  <SelectItem value="draft">Draft</SelectItem>
-                  <SelectItem value="waiting">Waiting</SelectItem>
-                  <SelectItem value="ready">Ready</SelectItem>
-                  <SelectItem value="done">Done</SelectItem>
-                  <SelectItem value="cancelled">Cancelled</SelectItem>
+                <SelectContent className="rounded-lg border-2 border-slate-200 shadow-xl">
+                  <SelectItem value="all" className="cursor-pointer hover:bg-slate-50 rounded-md transition-colors">All Status</SelectItem>
+                  <SelectItem value="draft" className="cursor-pointer hover:bg-slate-50 rounded-md transition-colors">Draft</SelectItem>
+                  <SelectItem value="waiting" className="cursor-pointer hover:bg-slate-50 rounded-md transition-colors">Waiting</SelectItem>
+                  <SelectItem value="ready" className="cursor-pointer hover:bg-slate-50 rounded-md transition-colors">Ready</SelectItem>
+                  <SelectItem value="done" className="cursor-pointer hover:bg-slate-50 rounded-md transition-colors">Done</SelectItem>
+                  <SelectItem value="cancelled" className="cursor-pointer hover:bg-slate-50 rounded-md transition-colors">Cancelled</SelectItem>
                 </SelectContent>
               </Select>
             </div>
@@ -207,12 +191,10 @@ export default function Dashboard() {
                   </TableRow>
                 ) : (
                   filteredOperations.map((op, index) => {
-                    const Icon = typeIcons[op.type];
                     return (
                       <TableRow key={index} className="hover:bg-slate-50">
                         <TableCell>
                           <div className="flex items-center gap-2">
-                            <Icon className="w-4 h-4 text-slate-600" />
                             <span className="font-medium capitalize">{op.type}</span>
                           </div>
                         </TableCell>
@@ -239,6 +221,25 @@ export default function Dashboard() {
           </div>
         </CardContent>
       </Card>
+
+      <style>{`
+        /* Select Dropdown Animations */
+        select:focus,
+        [role="combobox"]:focus {
+          outline: none;
+          box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.2);
+        }
+
+        /* Smooth transitions for all interactive elements */
+        button, select, [role="combobox"] {
+          transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        /* Active state for dropdowns */
+        [role="combobox"]:active {
+          transform: scale(0.98);
+        }
+      `}</style>
     </div>
   );
 }

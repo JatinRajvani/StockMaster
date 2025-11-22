@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { base44 } from '@/api/base44Client';
+// icons removed from this page
 // import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useQuery, useMutation, useQueryClient } from '@/shims/react-query';
 import { Button } from "@/components/ui/button";
@@ -10,7 +11,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { Plus, Trash2, CheckCircle, ArrowRightLeft } from '@/components/icons';
+// icons inlined above; removed shared icons import
 import { Skeleton } from "@/components/ui/skeleton";
 
 export default function Transfers() {
@@ -147,7 +148,6 @@ export default function Transfers() {
           onClick={() => setIsDialogOpen(true)}
           className="bg-gradient-to-r from-amber-500 to-orange-600 hover:from-amber-600 hover:to-orange-700"
         >
-          <Plus className="w-4 h-4 mr-2" />
           New Transfer
         </Button>
       </div>
@@ -199,13 +199,12 @@ export default function Transfers() {
                       </Badge>
                     </TableCell>
                     <TableCell>
-                      {transfer.status !== 'done' && (
+                        {transfer.status !== 'done' && (
                         <Button
                           size="sm"
                           onClick={() => validateMutation.mutate(transfer)}
                           className="bg-green-600 hover:bg-green-700"
                         >
-                          <CheckCircle className="w-4 h-4 mr-1" />
                           Validate
                         </Button>
                       )}
@@ -298,7 +297,7 @@ export default function Transfers() {
                   className="w-32"
                 />
                 <Button type="button" onClick={handleAddItem} variant="outline">
-                  <Plus className="w-4 h-4" />
+                  Add
                 </Button>
               </div>
 
@@ -326,7 +325,7 @@ export default function Transfers() {
                               size="sm"
                               onClick={() => handleRemoveItem(index)}
                             >
-                              <Trash2 className="w-4 h-4 text-red-500" />
+                              Remove
                             </Button>
                           </TableCell>
                         </TableRow>
