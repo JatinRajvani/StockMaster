@@ -150,7 +150,7 @@ export default function Deliveries() {
         </div>
         <Button 
           onClick={() => setIsDialogOpen(true)}
-          className="bg-gradient-to-r from-amber-500 to-orange-600 hover:from-amber-600 hover:to-orange-700"
+          variant="primary"
         >
           New Delivery
         </Button>
@@ -207,7 +207,7 @@ export default function Deliveries() {
                         <Button
                           size="sm"
                           onClick={() => validateMutation.mutate(delivery)}
-                          className="bg-green-600 hover:bg-green-700"
+                          variant="success"
                         >
                           Validate
                         </Button>
@@ -322,7 +322,7 @@ export default function Deliveries() {
                           <TableCell>
                             <Button
                               type="button"
-                              variant="ghost"
+                              variant="outline"
                               size="sm"
                               onClick={() => handleRemoveItem(index)}
                             >
@@ -341,7 +341,7 @@ export default function Deliveries() {
               <Button type="button" variant="outline" onClick={() => setIsDialogOpen(false)}>
                 Cancel
               </Button>
-              <Button type="submit" className="bg-gradient-to-r from-amber-500 to-orange-600">
+              <Button type="submit" variant="primary">
                 Create Delivery
               </Button>
             </div>

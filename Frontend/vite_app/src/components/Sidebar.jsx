@@ -71,7 +71,7 @@ export default function Sidebar(){
 
       {/* Profile Section */}
       <div className="sm-sidebar-bottom">
-        <div className="sm-profile">
+        <NavLink to="/profile" className="sm-profile" title="View profile">
           <div className="sm-avatar-wrapper">
             <div className="sm-avatar">
               <div className="sm-avatar-shine"></div>
@@ -83,7 +83,7 @@ export default function Sidebar(){
             <div className="sm-email">premkambaliya1@gmail.com</div>
           </div>
           <div className="sm-status-indicator"></div>
-        </div>
+        </NavLink>
       </div>
     </aside>
   )

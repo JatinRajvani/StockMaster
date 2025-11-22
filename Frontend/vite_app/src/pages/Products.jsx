@@ -9,7 +9,6 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
-import { Plus, Search, Edit, AlertTriangle, CheckCircle2 } from "@/components/icons";
 import { Skeleton } from "@/components/ui/skeleton";
 
 export default function Products() {
@@ -134,12 +133,12 @@ export default function Products() {
 
   const getStockStatus = (product) => {
     if (product.currentStock === 0)
-      return { label: "Out of Stock", color: "bg-red-100 text-red-800 border-red-300", icon: AlertTriangle };
+      return { label: "Out of Stock", color: "bg-red-100 text-red-800 border-red-300" };
 
     if (product.currentStock <= product.reorderLevel)
-      return { label: "Low Stock", color: "bg-yellow-100 text-yellow-800 border-yellow-300", icon: AlertTriangle };
+      return { label: "Low Stock", color: "bg-yellow-100 text-yellow-800 border-yellow-300" };
 
-    return { label: "In Stock", color: "bg-green-100 text-green-800 border-green-300", icon: CheckCircle2 };
+    return { label: "In Stock", color: "bg-green-100 text-green-800 border-green-300" };
   };
 
   // ---------------- FILTERING -----------------
@@ -174,9 +173,7 @@ export default function Products() {
           }}
         >
           <DialogTrigger asChild>
-            <Button className="bg-gradient-to-r from-amber-500 to-orange-600">
-              <Plus className="w-4 h-4 mr-2" /> Add Product
-            </Button>
+            <Button variant="primary">Add Product</Button>
           </DialogTrigger>
 
           {/* FORM DIALOG */}
@@ -264,7 +261,7 @@ export default function Products() {
               {/* BUTTONS */}
               <div className="flex justify-end gap-3">
                 <Button type="button" variant="outline" onClick={resetForm}>Cancel</Button>
-                <Button type="submit" className="bg-amber-600 text-white">
+                <Button type="submit" variant="primary">
                   {editingProduct ? "Update" : "Create"} Product
                 </Button>
               </div>
@@ -279,12 +276,10 @@ export default function Products() {
           <div className="flex gap-4">
             {/* SEARCH */}
             <div className="relative flex-1">
-              <Search className="absolute left-3 top-3 text-slate-400" />
               <Input
                 placeholder="Search..."
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
-                className="pl-10"
               />
             </div>
 
@@ -340,7 +335,6 @@ export default function Products() {
                 ) : (
                   filteredProducts.map((product) => {
                     const status = getStockStatus(product);
-                    const StatusIcon = status.icon;
 
                     return (
                       <TableRow key={product.productId}>
@@ -353,15 +347,12 @@ export default function Products() {
                           {product.currentStock} {product.unit}
                         </TableCell>
                         <TableCell>
-                          <Badge variant="outline" className={`${status.color} border flex gap-1 items-center`}>
-                            <StatusIcon className="w-3 h-3" />
+                          <Badge variant="outline" className={`${status.color} border`}>
                             {status.label}
                           </Badge>
                         </TableCell>
                         <TableCell>
-                          <Button variant="ghost" size="sm" onClick={() => handleEdit(product)}>
-                            <Edit className="w-4 h-4" />
-                          </Button>
+                          <Button variant="ghost" size="sm" onClick={() => handleEdit(product)}>Edit</Button>
                         </TableCell>
                       </TableRow>
                     );

@@ -215,7 +215,7 @@ export default function WarehouseDetails() {
               </Select>
             </div>
 
-            <Button type="submit" className="bg-amber-600">
+            <Button type="submit" variant="primary">
               Create Location
             </Button>
           </form>

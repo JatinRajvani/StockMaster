@@ -11,6 +11,7 @@ import Adjustments from '@/pages/Adjustments'
 import Settings from '@/pages/Settings'
 import WarehouseDetails from '@/pages/WarehouseDetails'
 import LocationDetails from "@/pages/LocationDetails";
+import Profile from '@/pages/Profile'
 import Sidebar from '@/components/Sidebar'
 
 function App() {
@@ -29,6 +30,7 @@ function App() {
             <Route path="/transfers" element={<Transfers />} />
             <Route path="/adjustments" element={<Adjustments />} />
             <Route path="/settings" element={<Settings />} />
+            <Route path="/profile" element={<Profile />} />
             <Route path="/warehouses/:warehouseId" element={<WarehouseDetails />} />
             <Route path="/warehouses/:warehouseId/locations/:locationId" element={<LocationDetails />} />
           </Routes>
