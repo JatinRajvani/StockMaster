@@ -1,22 +1,18 @@
-import React, { useState } from 'react';
-import { base44 } from '@/api/base44Client';
-// icons removed from this page
-// import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { useQuery, useMutation, useQueryClient } from '@/shims/react-query';
+import React, { useEffect, useState } from 'react';
+import { useQuery } from '@/shims/react-query';
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-// icons inlined above; removed shared icons import
 import { Skeleton } from "@/components/ui/skeleton";
 
 export default function Transfers() {
-  const queryClient = useQueryClient();
   const [isDialogOpen, setIsDialogOpen] = useState(false);
+  const [editId, setEditId] = useState(null);
+
   const [formData, setFormData] = useState({
     transfer_number: '',
     from_location: '',
@@ -30,58 +26,47 @@ export default function Transfers() {
     product_id: '',
     quantity: 0,
   });
-
-  const { data: transfers = [], isLoading } = useQuery({
-    queryKey: ['transfers'],
-    queryFn: () => base44.entities.Transfer.list('-updated_date'),
-  });
+  const [transfers, setTransfers] = useState([]);
 
   const { data: products = [] } = useQuery({
     queryKey: ['products'],
-    queryFn: () => base44.entities.Product.list(),
-  });
-
-  const { data: warehouses = [] } = useQuery({
-    queryKey: ['warehouses'],
-    queryFn: () => base44.entities.Warehouse.list(),
-  });
-
-  const createMutation = useMutation({
-    mutationFn: (data) => base44.entities.Transfer.create(data),
-    onSuccess: () => {
-      queryClient.invalidateQueries(['transfers']);
-      setIsDialogOpen(false);
-      resetForm();
+    queryFn: async () => {
+      const res = await fetch('/api/products');
+      if (!res.ok) return [];
+      const json = await res.json();
+      return json.products || json || [];
     },
   });
 
-  const validateMutation = useMutation({
-    mutationFn: async (transfer) => {
-      await base44.entities.Transfer.update(transfer.id, { status: 'done' });
-      
-      for (const item of transfer.items) {
-        const product = products.find(p => p.id === item.product_id);
-        if (product) {
-          await base44.entities.MoveHistory.create({
-            operation_type: 'transfer',
-            reference_number: transfer.transfer_number,
-            product_id: product.id,
-            product_name: product.name,
-            sku: product.sku,
-            quantity: item.quantity,
-            unit: product.unit_of_measure,
-            from_location: transfer.from_location,
-            to_location: transfer.to_location,
-            operation_date: transfer.transfer_date,
-            performed_by: 'Current User',
-          });
-        }
-      }
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries(['transfers']);
-    },
-  });
+  useEffect(() => {
+    const saved = JSON.parse(localStorage.getItem('transfers') || '[]');
+    setTransfers(saved);
+  }, []);
+
+  const saveTransfers = (list) => {
+    localStorage.setItem('transfers', JSON.stringify(list));
+    setTransfers(list);
+  };
+
+  const startEdit = (transfer) => {
+    setEditId(transfer.id);
+    setFormData({
+      transfer_number: transfer.transfer_number || '',
+      from_location: transfer.from_location || '',
+      to_location: transfer.to_location || '',
+      status: transfer.status || 'draft',
+      transfer_date: transfer.transfer_date || new Date().toISOString().split('T')[0],
+      items: Array.isArray(transfer.items) ? transfer.items : [],
+      notes: transfer.notes || '',
+    });
+    setIsDialogOpen(true);
+  };
+
+  const appendMoveHistory = (entries) => {
+    const prev = JSON.parse(localStorage.getItem('move_history') || '[]');
+    const next = [...entries, ...prev].slice(0, 500);
+    localStorage.setItem('move_history', JSON.stringify(next));
+  };
 
   const handleAddItem = () => {
     if (!currentItem.product_id || currentItem.quantity <= 0) return;
@@ -89,10 +74,10 @@ export default function Transfers() {
     const product = products.find(p => p.id === currentItem.product_id);
     if (!product) return;
 
-    setFormData({
-      ...formData,
+    setFormData(prev => ({
+      ...prev,
       items: [
-        ...formData.items,
+        ...prev.items,
         {
           product_id: product.id,
           product_name: product.name,
@@ -101,20 +86,33 @@ export default function Transfers() {
           unit: product.unit_of_measure,
         },
       ],
-    });
+    }));
     setCurrentItem({ product_id: '', quantity: 0 });
   };
 
   const handleRemoveItem = (index) => {
-    setFormData({
-      ...formData,
-      items: formData.items.filter((_, i) => i !== index),
-    });
+    setFormData(prev => ({
+      ...prev,
+      items: prev.items.filter((_, i) => i !== index),
+    }));
   };
 
   const handleSubmit = (e) => {
     e.preventDefault();
-    createMutation.mutate(formData);
+    if (editId) {
+      const updated = transfers.map(t => t.id === editId ? { ...t, ...formData } : t);
+      saveTransfers(updated);
+    } else {
+      const newTransfer = {
+        id: Date.now(),
+        ...formData,
+      };
+      const list = [newTransfer, ...transfers];
+      saveTransfers(list);
+    }
+    setIsDialogOpen(false);
+    setEditId(null);
+    resetForm();
   };
 
   const resetForm = () => {
@@ -127,6 +125,26 @@ export default function Transfers() {
       items: [],
       notes: '',
     });
+  };
+
+  const validateTransfer = (transfer) => {
+    const updated = transfers.map(t => t.id === transfer.id ? { ...t, status: 'done' } : t);
+    saveTransfers(updated);
+    const entries = transfer.items.map(item => ({
+      id: `${transfer.id}-${item.product_id}-${Math.random().toString(36).slice(2,8)}`,
+      operation_type: 'transfer',
+      reference_number: transfer.transfer_number,
+      product_id: item.product_id,
+      product_name: item.product_name,
+      sku: item.sku,
+      quantity: item.quantity,
+      unit: item.unit,
+      from_location: transfer.from_location,
+      to_location: transfer.to_location,
+      operation_date: transfer.transfer_date,
+      performed_by: 'Current User',
+    }));
+    appendMoveHistory(entries);
   };
 
   const statusColors = {
@@ -167,7 +185,7 @@ export default function Transfers() {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {isLoading ? (
+              {!transfers ? (
                 Array(5).fill(0).map((_, i) => (
                   <TableRow key={i}>
                     <TableCell><Skeleton className="h-4 w-24" /></TableCell>
@@ -199,15 +217,14 @@ export default function Transfers() {
                       </Badge>
                     </TableCell>
                     <TableCell>
+                      <div className="flex gap-2">
                         {transfer.status !== 'done' && (
-                        <Button
-                          size="sm"
-                          onClick={() => validateMutation.mutate(transfer)}
-                          variant="success"
-                        >
-                          Validate
-                        </Button>
-                      )}
+                          <>
+                            <Button size="sm" variant="outline" onClick={() => startEdit(transfer)}>Edit</Button>
+                            <Button size="sm" onClick={() => validateTransfer(transfer)} variant="success">Validate</Button>
+                          </>
+                        )}
+                      </div>
                     </TableCell>
                   </TableRow>
                 ))
@@ -220,7 +237,7 @@ export default function Transfers() {
       <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
         <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
-            <DialogTitle>Create New Transfer</DialogTitle>
+            <DialogTitle>{editId ? 'Edit Transfer' : 'Create New Transfer'}</DialogTitle>
           </DialogHeader>
           <form onSubmit={handleSubmit} className="space-y-6">
             <div className="grid grid-cols-2 gap-4">
@@ -249,45 +266,23 @@ export default function Transfers() {
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
                 <Label htmlFor="from_location">From Location *</Label>
-                <Select value={formData.from_location} onValueChange={(value) => setFormData({ ...formData, from_location: value })}>
-                  <SelectTrigger>
-                    <SelectValue placeholder="Select location" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {warehouses.map((w) => (
-                      <SelectItem key={w.id} value={w.name}>{w.name}</SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+                <Input id="from_location" value={formData.from_location} onChange={(e)=>setFormData({ ...formData, from_location: e.target.value })} placeholder="From location" required />
               </div>
               <div className="space-y-2">
                 <Label htmlFor="to_location">To Location *</Label>
-                <Select value={formData.to_location} onValueChange={(value) => setFormData({ ...formData, to_location: value })}>
-                  <SelectTrigger>
-                    <SelectValue placeholder="Select location" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {warehouses.map((w) => (
-                      <SelectItem key={w.id} value={w.name}>{w.name}</SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+                <Input id="to_location" value={formData.to_location} onChange={(e)=>setFormData({ ...formData, to_location: e.target.value })} placeholder="To location" required />
               </div>
             </div>
 
             <div className="space-y-4">
               <Label>Items</Label>
               <div className="flex gap-3">
-                <Select value={currentItem.product_id} onValueChange={(value) => setCurrentItem({ ...currentItem, product_id: value })}>
-                  <SelectTrigger className="flex-1">
-                    <SelectValue placeholder="Select product" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {products.map((p) => (
-                      <SelectItem key={p.id} value={p.id}>{p.name} ({p.sku})</SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+                <select className="flex-1 border rounded-md px-3 py-2" value={currentItem.product_id} onChange={(e)=>setCurrentItem({ ...currentItem, product_id: e.target.value })}>
+                  <option value="">Select product</option>
+                  {products.map(p => (
+                    <option key={p.id || p._id} value={p.id || p._id}>{p.name} {p.sku ? `(${p.sku})` : ''}</option>
+                  ))}
+                </select>
                 <Input
                   type="number"
                   min="0"
@@ -340,9 +335,7 @@ export default function Transfers() {
               <Button type="button" variant="outline" onClick={() => setIsDialogOpen(false)}>
                 Cancel
               </Button>
-              <Button type="submit" variant="primary">
-                Create Transfer
-              </Button>
+              <Button type="submit" variant="primary">{editId ? 'Save Changes' : 'Create Transfer'}</Button>
             </div>
           </form>
         </DialogContent>

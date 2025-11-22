@@ -1,5 +1,4 @@
 import React, { useState, useEffect } from 'react';
-import { base44 } from '@/api/base44Client';
 import { useQuery } from '@/shims/react-query';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -13,38 +12,41 @@ export default function Dashboard() {
 
   const { data: products = [], isLoading: loadingProducts } = useQuery({
     queryKey: ['products'],
-    queryFn: () => base44.entities.Product.list(),
+    queryFn: async () => {
+      const res = await fetch('/api/products');
+      if (!res.ok) return [];
+      const json = await res.json();
+      return json.products || json || [];
+    },
   });
 
   const { data: receipts = [], isLoading: loadingReceipts } = useQuery({
     queryKey: ['receipts'],
-    queryFn: () => base44.entities.Receipt.list(),
-  });
-
-  const { data: deliveries = [], isLoading: loadingDeliveries } = useQuery({
-    queryKey: ['deliveries'],
-    queryFn: () => base44.entities.Delivery.list(),
-  });
-
-  const { data: transfers = [], isLoading: loadingTransfers } = useQuery({
-    queryKey: ['transfers'],
-    queryFn: () => base44.entities.Transfer.list(),
+    queryFn: async () => {
+      const res = await fetch('/api/receipts');
+      if (!res.ok) return [];
+      const json = await res.json();
+      return json.receipts || [];
+    },
   });
 
   // Calculate KPIs
   const totalProducts = products.length;
   const lowStockItems = products.filter(p => p.current_stock <= p.reorder_point && p.current_stock > 0).length;
   const outOfStockItems = products.filter(p => p.current_stock === 0).length;
-  const pendingReceipts = receipts.filter(r => ['draft', 'waiting', 'ready'].includes(r.status)).length;
-  const pendingDeliveries = deliveries.filter(d => ['draft', 'waiting', 'ready'].includes(d.status)).length;
-  const scheduledTransfers = transfers.filter(t => ['draft', 'waiting', 'ready'].includes(t.status)).length;
+  const pendingReceipts = receipts.filter(r => ['Draft','Waiting','Ready','draft','waiting','ready'].includes(r.status)).length;
+  const pendingDeliveries = 0;
+  const scheduledTransfers = 0;
 
   // Get recent operations
-  const allOperations = [
-    ...receipts.map(r => ({ ...r, type: 'receipt', date: r.receipt_date })),
-    ...deliveries.map(d => ({ ...d, type: 'delivery', date: d.delivery_date })),
-    ...transfers.map(t => ({ ...t, type: 'transfer', date: t.transfer_date })),
-  ]
+  const allOperations = receipts
+    .map(r => ({
+      type: 'receipt',
+      reference: r.receiptId || r.receipt_number || r.id,
+      details: `${r.supplierId || r.supplier || ''} → ${r.warehouseId || r.warehouse || ''}`,
+      date: r.createdAt || r.receipt_date,
+      status: r.status,
+    }))
     .sort((a, b) => new Date(b.date) - new Date(a.date))
     .slice(0, 10);
 
@@ -60,6 +62,11 @@ export default function Dashboard() {
     ready: 'bg-blue-100 text-blue-800 border-blue-300',
     done: 'bg-green-100 text-green-800 border-green-300',
     cancelled: 'bg-red-100 text-red-800 border-red-300',
+    Draft: 'bg-slate-100 text-slate-800 border-slate-300',
+    Waiting: 'bg-yellow-100 text-yellow-800 border-yellow-300',
+    Ready: 'bg-blue-100 text-blue-800 border-blue-300',
+    Done: 'bg-green-100 text-green-800 border-green-300',
+    Canceled: 'bg-red-100 text-red-800 border-red-300',
   };
 
   const KPICard = ({ title, value, icon: Icon, trend, trendValue, color }) => (
@@ -140,8 +147,6 @@ export default function Dashboard() {
                 <SelectContent className="rounded-lg border-2 border-slate-200 shadow-xl">
                   <SelectItem value="all" className="cursor-pointer hover:bg-slate-50 rounded-md transition-colors">All Types</SelectItem>
                   <SelectItem value="receipt" className="cursor-pointer hover:bg-slate-50 rounded-md transition-colors">Receipts</SelectItem>
-                  <SelectItem value="delivery" className="cursor-pointer hover:bg-slate-50 rounded-md transition-colors">Deliveries</SelectItem>
-                  <SelectItem value="transfer" className="cursor-pointer hover:bg-slate-50 rounded-md transition-colors">Transfers</SelectItem>
                 </SelectContent>
               </Select>
               <Select value={filterStatus} onValueChange={setFilterStatus}>
@@ -173,7 +178,7 @@ export default function Dashboard() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {loadingReceipts || loadingDeliveries || loadingTransfers ? (
+                {loadingReceipts ? (
                   Array(5).fill(0).map((_, i) => (
                     <TableRow key={i}>
                       <TableCell><Skeleton className="h-4 w-20" /></TableCell>
@@ -198,17 +203,11 @@ export default function Dashboard() {
                             <span className="font-medium capitalize">{op.type}</span>
                           </div>
                         </TableCell>
-                        <TableCell className="font-mono text-sm">
-                          {op.receipt_number || op.delivery_number || op.transfer_number}
-                        </TableCell>
-                        <TableCell className="text-slate-600">
-                          {op.supplier || op.customer || `${op.from_location} → ${op.to_location}`}
-                        </TableCell>
-                        <TableCell className="text-slate-600">
-                          {op.date ? new Date(op.date).toLocaleDateString() : '-'}
-                        </TableCell>
+                        <TableCell className="font-mono text-sm">{op.reference}</TableCell>
+                        <TableCell className="text-slate-600">{op.details}</TableCell>
+                        <TableCell className="text-slate-600">{op.date ? new Date(op.date).toLocaleDateString() : '-'}</TableCell>
                         <TableCell>
-                          <Badge variant="outline" className={`${statusColors[op.status]} border`}>
+                          <Badge variant="outline" className={`${statusColors[op.status] || 'bg-slate-100 text-slate-800'} border`}>
                             {op.status}
                           </Badge>
                         </TableCell>

@@ -1,7 +1,4 @@
-import React, { useState } from 'react';
-import { base44 } from '@/api/base44Client';
-// import { useQuery } from '@tanstack/react-query';
-import { useQuery } from '@/shims/react-query';
+import React, { useEffect, useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
@@ -13,11 +10,19 @@ import { Skeleton } from "@/components/ui/skeleton";
 export default function MoveHistory() {
   const [searchTerm, setSearchTerm] = useState('');
   const [filterType, setFilterType] = useState('all');
+  const [history, setHistory] = useState([]);
+  const [loading, setLoading] = useState(true);
 
-  const { data: history = [], isLoading } = useQuery({
-    queryKey: ['move_history'],
-    queryFn: () => base44.entities.MoveHistory.list('-updated_date', 100),
-  });
+  useEffect(() => {
+    try {
+      const local = JSON.parse(localStorage.getItem('move_history') || '[]');
+      setHistory(local);
+    } catch (e) {
+      setHistory([]);
+    } finally {
+      setLoading(false);
+    }
+  }, []);
 
   const filteredHistory = history.filter(item => {
     const matchesSearch = 
@@ -34,8 +39,6 @@ export default function MoveHistory() {
     transfer: 'bg-blue-100 text-blue-800 border-blue-300',
     adjustment: 'bg-orange-100 text-orange-800 border-orange-300',
   };
-
-  // icons removed from badges
 
   return (
     <div className="p-6 lg:p-8 space-y-6">
@@ -86,7 +89,7 @@ export default function MoveHistory() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {isLoading ? (
+                {loading ? (
                   Array(10).fill(0).map((_, i) => (
                     <TableRow key={i}>
                       <TableCell><Skeleton className="h-4 w-24" /></TableCell>
