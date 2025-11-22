@@ -11,7 +11,7 @@ export const registerUser = async (req, res) => {
       return res.status(400).json({ errors: errors.array() });
     }
 
-    const { name, email, password, phone } = req.body;
+    const { username, email, password } = req.body;
 
     // 🔥 2. Check if email exists
     const existingUser = await UserModel.findByEmail(email);
@@ -23,18 +23,44 @@ export const registerUser = async (req, res) => {
 
     // 🔥 4. Create the user
     const user = {
-      name,
+      username,
       email,
       password: hashedPassword,
-      phone,
-      wishlist: [],
       createdAt: new Date(),
       updatedAt: new Date(),
+      lastLogin: null,
+      activitySummary: {
+        receipts: 0,
+        deliveries: 0,
+        transfers: 0,
+        adjustments: 0,
+      },
     };
 
-    await UserModel.createUser(user);
+    const result = await UserModel.createUser(user);
 
-    res.json({ message: "Signup successful. Please log in." });
+    // Auto-login after signup: set lastLogin and issue JWT
+    const userId = result.insertedId;
+    await UserModel.updateLastLogin(userId);
+    const token = jwt.sign(
+      { userId },
+      process.env.JWT_SECRET,
+      { expiresIn: "7d" }
+    );
+
+    const created = await UserModel.findById(userId);
+    res.json({
+      message: "Signup successful",
+      token,
+      user: {
+        id: created._id,
+        username: created.username,
+        email: created.email,
+        createdAt: created.createdAt,
+        lastLogin: created.lastLogin,
+        activitySummary: created.activitySummary,
+      },
+    });
   } catch (error) {
     res.status(500).json({ message: "Server error" });
   }
@@ -53,20 +79,19 @@ export const loginUser = async (req, res) => {
     if (!isMatch)
       return res.status(400).json({ message: "Invalid email or password" });
 
-    const token = jwt.sign(
-      { userId: user._id },
-      process.env.JWT_SECRET,
-      { expiresIn: "7d" }
-    );
+    await UserModel.updateLastLogin(user._id);
+    const token = jwt.sign({ userId: user._id }, process.env.JWT_SECRET, { expiresIn: "7d" });
 
     res.json({
       message: "Login successful",
       token,
       user: {
-        name: user.name,
+        id: user._id,
+        username: user.username,
         email: user.email,
-        phone: user.phone,
-        wishlist: user.wishlist,
+        createdAt: user.createdAt,
+        lastLogin: new Date(),
+        activitySummary: user.activitySummary || { receipts: 0, deliveries: 0, transfers: 0, adjustments: 0 },
       },
     });
   } catch (error) {
@@ -81,10 +106,38 @@ export const getProfile = async (req, res) => {
     if (!user) return res.status(404).json({ message: "User not found" });
 
     res.json({
-      name: user.name,
+      id: user._id,
+      username: user.username,
       email: user.email,
-      phone: user.phone,
-      wishlist: user.wishlist,
+      mobileNumber: user.mobileNumber || null,
+      createdAt: user.createdAt,
+      lastLogin: user.lastLogin,
+      activitySummary: user.activitySummary || { receipts: 0, deliveries: 0, transfers: 0, adjustments: 0 },
+    });
+  } catch (error) {
+    res.status(500).json({ message: "Server error" });
+  }
+};
+
+export const updateProfile = async (req, res) => {
+  try {
+    const { username, mobileNumber } = req.body || {};
+    const update = {};
+    if (typeof username !== 'undefined') update.username = username;
+    if (typeof mobileNumber !== 'undefined') update.mobileNumber = mobileNumber;
+
+    await UserModel.updateUser(req.userId, update);
+    const user = await UserModel.findById(req.userId);
+    if (!user) return res.status(404).json({ message: "User not found" });
+
+    res.json({
+      id: user._id,
+      username: user.username,
+      email: user.email,
+      mobileNumber: user.mobileNumber || null,
+      createdAt: user.createdAt,
+      lastLogin: user.lastLogin,
+      activitySummary: user.activitySummary || { receipts: 0, deliveries: 0, transfers: 0, adjustments: 0 },
     });
   } catch (error) {
     res.status(500).json({ message: "Server error" });
